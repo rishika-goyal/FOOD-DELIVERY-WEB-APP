@@ -1,11 +1,14 @@
 import React, { useContext, useEffect, useState } from 'react'
 import './PlaceOrder.css'
+import { useNavigate } from "react-router-dom";
 import { StoreContext } from '../../context/StoreContext'
 import axios from "axios";
 
 const PlaceOrder = () => {
 
   const {getTotalCartAmount, token, food_list, cartItems, url}=useContext(StoreContext);
+
+  const [payment, setPayment] = useState("cod"); // "cod" or "stripe"
 
   const [data, setData]=useState({
     firstName:"",
@@ -26,52 +29,70 @@ const PlaceOrder = () => {
   }
 
   const placeOrder = async (event) => {
-  event.preventDefault();
+    event.preventDefault();
 
-  let orderItems = [];
+    let orderItems = [];
 
-  food_list.forEach((item) => {
-    if (cartItems[item._id] > 0) {
-      let itemInfo = { ...item };
-      itemInfo.quantity = cartItems[item._id];
-      orderItems.push(itemInfo);
+    food_list.forEach((item) => {
+      if (cartItems[item._id] > 0) {
+        let itemInfo = { ...item };
+        itemInfo.quantity = cartItems[item._id];
+        orderItems.push(itemInfo);
+      }
+    });
+
+    let orderData = {
+      address: data,
+      items: orderItems,
+      amount: getTotalCartAmount() + 2,
+    };
+
+    if (payment === "stripe") {
+      let response = await axios.post(
+        url + "/api/order/place",
+        orderData,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+      );
+
+      if (response.data.success) {
+        const { session_url } = response.data;
+        window.location.replace(session_url);
+      } else {
+        alert("Error");
+      }
+    } else {
+      // COD flow
+      let response = await axios.post(
+        url + "/api/order/placecod",
+        orderData,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+      );
+
+      if (response.data.success) {
+        navigate("/myorders");
+      } else {
+        alert("Error");
+      }
     }
-  });
-
-  let orderData = {
-    address: data,
-    items: orderItems,
-    amount: getTotalCartAmount() + 2,
   };
 
-  //console.log("URL:", url); 
-
-  let response = await axios.post(
-  url + "/api/order/place",
-  orderData,
-  {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`
+  const navigate= useNavigate();
+  useEffect(()=>{
+    if(!token){
+      navigate("/cart")
+    }else if(getTotalCartAmount()===0){
+      navigate("/cart")
     }
-  }
-);
+  },[token])
 
-  if (response.data.success) {
-    const { session_url } = response.data;
-    window.location.replace(session_url);
-  } else {
-    alert("Error");
-  }
-};
-
-const navigate= useNavigate();
-useEffect(()=>{
-  if(!token){
-    navigate("/cart")
-  }else if(getTotalCartAmount()===0){
-    navigate("/cart")
-  }
-},[token])
   return (
     <form onSubmit={placeOrder} className='place-order'>
       <div className="place-order-left">
@@ -98,21 +119,36 @@ useEffect(()=>{
             <div>
               <div className="cart-total-details">
                 <p>Subtotal</p>
-                <p>${getTotalCartAmount()}</p>
+                <p>₹{getTotalCartAmount()}</p>
               </div>
               <hr />
               <div className="cart-total-details">
                 <p>Delivery Fee</p>
-                <p>${getTotalCartAmount()===0?0:2}</p>
+                <p>₹{getTotalCartAmount()===0?0:2}</p>
               </div>
               <hr />
               <div className="cart-total-details">
                 <b>Total</b>
-                <b>${getTotalCartAmount()===0?0:getTotalCartAmount()+2}</b>
+                <b>₹{getTotalCartAmount()===0?0:getTotalCartAmount()+2}</b>
               </div>
             </div>
-            <button type="submit">PROCEED TO PAYMENT</button>
           </div>
+
+          <div className="payment">
+            <h2>Payment Method</h2>
+            <div onClick={() => setPayment("cod")} className='payment-option'>
+              <span className={payment==="cod" ? "dot selected" : "dot"}></span>
+              <p>COD ( Cash on delivery )</p>
+            </div>
+            <div onClick={() => setPayment("stripe")} className='payment-option'>
+              <span className={payment==="stripe" ? "dot selected" : "dot"}></span>
+              <p>Stripe ( Credit / Debit )</p>
+            </div>
+          </div>
+
+          <button className='place-order-submit' type="submit">
+            {payment === "cod" ? "PLACE ORDER" : "PROCEED TO PAYMENT"}
+          </button>
       </div>
     </form>
   )

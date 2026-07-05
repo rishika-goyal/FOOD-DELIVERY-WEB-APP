@@ -33,3 +33,39 @@
 .place-order .cart-total button{
   margin-top:30px;
 }
+.payment{
+  margin-top: 30px;
+}
+.payment h2{
+  margin-bottom: 15px;
+}
+.payment-option{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid tomato;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+.payment .dot{
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid tomato;
+  display: inline-block;
+}
+.payment .dot.selected{
+  background-color: tomato;
+}
+.place-order-submit{
+  border: none;
+  color: white;
+  background-color: tomato;
+  width: 100%;
+  padding: 12px 0px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 20px;
+}
